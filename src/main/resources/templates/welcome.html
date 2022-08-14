@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'welcome')}">
+
+<body>
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<div id="app">
+    <h1>Photo Voting Application</h1>
+    <div v-if="errorGettingData">
+        <p>There was an error getting the images data. See below for details.</p>
+        <p>Status: {{ this.status }}</p>
+        <p>Code : {{ this.code }}</p>
+        <p>Error message: {{ this.errorMessage }}</p>
+    </div>
+    <div v-else>
+        <div class="row">
+            <div v-if="!isFinished">
+                <p>Click the button to select your favorite of the two photos below.</p>
+                <div class="col-sm-6 col-xs-12" v-for="item in matchups[0]">
+                    <button v-on:click="pickImage(item)">Pick this photo!</button>
+                    <br>
+                    <img class="img-fluid" :src="item" :alt="item" />
+                </div>
+            </div>
+            <div v-else>
+                <div class="col-sm-8 col-xs-12">
+                    <p>This is your winning image. Click the button below to restart with a new set of images.</p>
+                    <img class="img-fluid" :src="winners[0]" :alt="winners[0]" />
+                    <button v-on:click="reloadImages">Restart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+  const { createApp } = Vue
+
+  createApp({
+    data() {
+      return {
+        errorMessage: '',
+        status: '',
+        code: '',
+        images: [],
+        errorGettingData: false,
+        winners: [],
+        matchups: [],
+        isFinished: false,
+      }
+    },
+    methods: {
+        pickImage(image) {
+            this.winners.push(image)
+            this.matchups.shift()
+            if (this.matchups.length < 1) {
+                if (this.winners.length == 1) {
+                    this.isFinished = true
+                    this.addWinner(this.winners[0])
+                } else {
+                    while(this.winners.length) {
+                        this.matchups.push(this.winners.splice(0,2))
+                    }
+                }
+            }
+        },
+
+        reloadImages() {
+            this.images = [],
+            this.winners = [],
+            this.matchups = [],
+            axios
+                .get('https://photo-voting.hiring.ipums.org/images/')
+                .then(response => {
+                    this.images = response.data.data
+                    while(this.images.length) {
+                        this.matchups.push(this.images.splice(0,2))
+                    }
+                })
+                .catch(error => {
+                    this.errorGettingData = true
+                    this.status = response.data.status
+                    this.code = response.data.code
+                    this.errorMessage = error
+                })
+            this.isFinished = false
+        },
+
+        addWinner(winner) {
+
+          axios
+              .get('/username/')
+              .then(response => {
+                  username = response.data;
+                  let payload = {
+              imageUrl: winner,
+              username: response.data,
+              };
+
+          axios
+            .post('/winners/', payload)
+            .then(response => {
+                alert('You have selected your winning photo, and it has been saved. You can view it on the Previous Winners page.')
+            })
+            .catch(error => {
+                alert('There was an error saving your winning photo.')
+            })
+            })
+            .catch(error => {
+
+            })
+
+        }
+    },
+    mounted() {
+        axios
+            .get('https://photo-voting.hiring.ipums.org/images/')
+            .then(response => {
+                this.images = response.data.data
+                while(this.images.length) {
+                    this.matchups.push(this.images.splice(0,2))
+                }
+            })
+            .catch(error => {
+                this.errorGettingData = true
+                this.status = response.data.status
+                this.code = response.data.code
+                this.errorMessage = error
+            })
+
+    }
+  }).mount('#app')
+</script>
+</body>
+</html>

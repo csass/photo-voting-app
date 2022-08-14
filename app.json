@@ -1,0 +1,5 @@
+{
+  "name": "Photo Voting Application",
+  "description": "A Java spring boot app, which can be deployed to Heroku.",
+  "addons": [ "heroku-postgresql" ]
+}

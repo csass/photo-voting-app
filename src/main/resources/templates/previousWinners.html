@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: layout (~{::body},'previousWinners')}">
+
+<body>
+
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+
+<div id="previousWinners">
+    <div v-if="errorGettingData">
+        <p>There was an error getting the winner data. See below for details.</p>
+        <p>Status: {{ this.status }}</p>
+        <p>Error message: {{ this.errorMessage }}</p>
+    </div>
+    <div v-else>
+        <div v-if="previousWinners.length > 0">
+            <div v-for="item in previousWinners">
+                <p :value="item.username" /> {{ item.username }}'s favorite image was: </p>
+                <img :src="decodeURIComponent(item.imageUrl).replace('=', '')" :alt="decodeURIComponent(item.imageUrl).replace('=', '')" />
+                <br>
+            </div>
+        </div>
+        <div v-else>
+            <p>No winners yet!</p>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+  const { createApp } = Vue
+
+  createApp({
+    data() {
+      return {
+        errorMessage: '',
+        status: '',
+        errorGettingData: false,
+        previousWinners: [],
+      }
+    },
+    methods: {
+    },
+    mounted() {
+        axios
+            .get('/winners/')
+            .then(response => {
+                this.previousWinners = response.data
+            })
+            .catch(error => {
+                this.errorGettingData = true
+                this.status = response.data.status
+                this.errorMessage = error
+            })
+    }
+  }).mount('#previousWinners')
+</script>
+</body>
+</html>
